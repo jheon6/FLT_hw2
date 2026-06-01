@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <stdexcept>
 using namespace std;
 
 struct Node {
@@ -11,6 +12,9 @@ struct Node {
     Node(char v, Node* l = nullptr, Node* r = nullptr)
         : value(v), left(l), right(r) {}
 };
+
+// Forward declaration — RegexParser::parseAtom uses it for cleanup on error
+void deleteTree(Node* node);
 
 // Grammar (higher priority operator -> deeper in tree):
 //   regex  -> concat ('+' concat)*      lowest priority
@@ -26,7 +30,15 @@ public:
 
     Node* parse() {
         if (input.empty()) return nullptr;
-        return parseRegex();
+        Node* root = parseRegex();
+        // [Fix #3] 파싱 후 남은 입력이 있으면 오류
+        if (pos < (int)input.size()) {
+            deleteTree(root);
+            throw runtime_error(
+                string("예상치 못한 문자 '") + input[pos] +
+                "' (위치 " + to_string(pos + 1) + ")");
+        }
+        return root;
     }
 
 private:
@@ -44,6 +56,14 @@ private:
         Node* node = parseConcat();
         while (current() == '+') {
             consume();
+            // [Fix #1/#2] '+' 뒤에 유효한 피연산자가 없으면 오류
+            if (!isAtomStart(current())) {
+                deleteTree(node);
+                throw runtime_error(
+                    current() == '\0'
+                        ? string("'+' 뒤에 피연산자가 없습니다")
+                        : string("'+' 뒤에 잘못된 문자 '") + current() + "'");
+            }
             Node* right = parseConcat();
             node = new Node('+', node, right);
         }
@@ -72,9 +92,22 @@ private:
         if (current() == '(') {
             consume();
             Node* node = parseRegex();
-            if (current() == ')') consume();
+            // [Fix #6] 닫는 괄호가 없으면 오류
+            if (current() != ')') {
+                deleteTree(node);
+                throw runtime_error("닫는 괄호 ')' 가 없습니다");
+            }
+            consume();
             return node;
         }
+        // [Fix #1] 입력 끝에서 피연산자 요구 시 오류
+        if (current() == '\0')
+            throw runtime_error("피연산자가 필요한 위치에서 입력이 끝났습니다");
+        // [Fix #1] 알파벳·숫자가 아닌 문자를 리터럴로 처리하지 않음
+        if (!isalnum((unsigned char)current()))
+            throw runtime_error(
+                string("잘못된 문자 '") + current() +
+                "' (위치 " + to_string(pos + 1) + ")");
         char c = current();
         consume();
         return new Node(c);
@@ -162,11 +195,36 @@ NFA thompsonNFA(Node* n) {
     return {l.states + r.states - 1, l.arcs + r.arcs};  // concat
 }
 
+// ── JSON / HTML escaping ──────────────────────────────────────────────────────
+
+// [Fix #4] JSON 특수문자 이스케이프
+string jsonEscape(char c) {
+    if (c == '"')  return "\\\"";
+    if (c == '\\') return "\\\\";
+    return string(1, c);
+}
+
+// [Fix #5] HTML 특수문자 이스케이프
+string htmlEscape(const string& s) {
+    string out;
+    for (char c : s) {
+        switch (c) {
+            case '&':  out += "&amp;";  break;
+            case '<':  out += "&lt;";   break;
+            case '>':  out += "&gt;";   break;
+            case '"':  out += "&quot;"; break;
+            case '\'': out += "&#39;";  break;
+            default:   out += c;
+        }
+    }
+    return out;
+}
+
 // ── JSON serialization for D3 ─────────────────────────────────────────────────
 
 string toJSON(Node* n) {
     if (!n) return "null";
-    string name(1, n->value);
+    string name = jsonEscape(n->value);   // [Fix #4] 이스케이프 적용
     if (!n->left && !n->right)
         return "{\"name\":\"" + name + "\"}";
     string s = "{\"name\":\"" + name + "\",\"children\":[";
@@ -178,7 +236,7 @@ string toJSON(Node* n) {
     return s;
 }
 
-// ── D3.js HTML generation ─────────────────────────────────────────────────────
+// ── D3.js HTML generation ────────────────────────────────────────────────────────────
 
 void generateHTML(Node* root, const string& regex,
                   int sz, int leaves, int ops, const NFA& exact) {
@@ -209,7 +267,8 @@ void generateHTML(Node* root, const string& regex,
          "</head>\n"
          "<body>\n";
 
-    f << "<h2>정규표현 트리 &nbsp; <code>" << regex << "</code></h2>\n";
+    // [Fix #5] regex를 HTML에 삽입할 때 이스케이프 적용
+    f << "<h2>정규표현 트리 &nbsp; <code>" << htmlEscape(regex) << "</code></h2>\n";
     f << "<div class=\"info\">"
       << "size = " << sz
       << " &nbsp;|&nbsp; 단말 노드 = " << leaves
@@ -265,8 +324,14 @@ int main() {
     cout << "정규표현 입력: ";
     cin >> regex;
 
-    RegexParser parser(regex);
-    Node* root = parser.parse();
+    Node* root = nullptr;
+    try {
+        RegexParser parser(regex);
+        root = parser.parse();
+    } catch (const runtime_error& e) {
+        cerr << "파싱 오류: " << e.what() << "\n";
+        return 1;
+    }
 
     if (!root) {
         cout << "입력이 비어있습니다.\n";
