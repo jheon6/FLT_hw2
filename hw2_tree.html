@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Regex to e-NFA</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+body{margin:0;background:#1e1e2e;color:#cdd6f4;font-family:monospace}
+h2{text-align:center;padding:14px 0 4px;font-size:1.15em}
+.info{text-align:center;font-size:.84em;color:#a6adc8;padding-bottom:8px}
+hr.sec{border:none;border-top:1px solid #313244;margin:6px 0 0}
+.operator circle{fill:#89b4fa;stroke:#1e1e2e;stroke-width:2.5px}
+.leaf     circle{fill:#a6e3a1;stroke:#1e1e2e;stroke-width:2.5px}
+.node text{font-size:13px;font-weight:bold;fill:#1e1e2e;pointer-events:none}
+.tlink{fill:none;stroke:#585b70;stroke-width:1.8px}
+.nfa-edge{fill:none;stroke-width:1.8px}
+.sym-edge{stroke:#89b4fa}
+.eps-edge{stroke:#cba6f7;stroke-dasharray:5,3}
+.nfa-lbl{font-size:11px;font-family:monospace;dominant-baseline:middle}
+.sym-lbl{fill:#89b4fa}
+.eps-lbl{fill:#cba6f7}
+.legend{text-align:center;font-size:.78em;color:#a6adc8;padding:4px 0 8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+<h2>&#9312; &#51221;&#44508;&#54364;&#54788; &#54028;&#49828; &#53944;&#47532; &nbsp;<code>(a+b)*ab</code></h2>
+<div class="info">&#51204;&#52404; &#45432;&#46300; 8 &nbsp;|&nbsp; &#45800;&#47568; 4 &nbsp;|&nbsp; &#50672;&#49328;&#51088; 4 &nbsp;|&nbsp; NFA &#49345;&#53468; 10 &nbsp;|&nbsp; NFA &#51204;&#51060; 12</div>
+<svg id="tree-svg"></svg>
+<hr class="sec">
+<h2>&#9313; &epsilon;-NFA &#49345;&#53468;&#51204;&#51060;&#46020;</h2>
+<div class="info" id="nfa-info"></div>
+<div class="legend"><span class="dot" style="background:#89dceb"></span>&#49884;&#51089; &nbsp;<span class="dot" style="background:#f38ba8"></span>&#51333;&#44208; &nbsp;<span class="dot" style="background:#45475a;border:1px solid #cdd6f4"></span>&#51068;&#48152; &nbsp;<span style="color:#89b4fa">&#9135;&#9135;</span> &#49900;&#48479;&#47673; &nbsp;<span style="color:#cba6f7">&#9135;&#9135;</span> &epsilon; &#51204;&#51060;</div>
+<svg id="nfa-svg"></svg>
+<script>
+const treeData = {"name":".","children":[{"name":".","children":[{"name":"*","children":[{"name":"+","children":[{"name":"a"},{"name":"b"}]}]},{"name":"a"}]},{"name":"b"}]};
+const margin={top:50,right:180,bottom:30,left:80};
+const W=Math.max(900,window.innerWidth)-margin.left-margin.right;
+const H=Math.max(380,window.innerHeight*0.4)-margin.top-margin.bottom;
+const tSvg=d3.select('#tree-svg')
+  .attr('width',W+margin.left+margin.right)
+  .attr('height',H+margin.top+margin.bottom)
+  .append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+const tr=d3.hierarchy(treeData);
+d3.tree().size([H,W])(tr);
+tSvg.selectAll('.tlink').data(tr.links()).enter().append('path')
+  .attr('class','tlink')
+  .attr('d',d3.linkHorizontal().x(d=>d.y).y(d=>d.x));
+const tn=tSvg.selectAll('.node').data(tr.descendants())
+  .enter().append('g')
+  .attr('class',d=>'node '+(d.children?'operator':'leaf'))
+  .attr('transform',d=>`translate(${d.y},${d.x})`);
+tn.append('circle').attr('r',18);
+tn.append('text').attr('dy','0.35em').attr('text-anchor','middle')
+  .text(d=>d.data.name);
+const nfaData={"states":[{"id":0,"isStart":false,"isAccept":false},{"id":1,"isStart":false,"isAccept":false},{"id":2,"isStart":false,"isAccept":false},{"id":3,"isStart":false,"isAccept":false},{"id":4,"isStart":false,"isAccept":false},{"id":5,"isStart":false,"isAccept":false},{"id":6,"isStart":true,"isAccept":false},{"id":7,"isStart":false,"isAccept":false},{"id":8,"isStart":false,"isAccept":false},{"id":9,"isStart":false,"isAccept":false},{"id":10,"isStart":false,"isAccept":false},{"id":11,"isStart":false,"isAccept":true}],"links":[{"source":0,"target":1,"label":"a","isEps":false},{"source":1,"target":5,"label":"e","isEps":true},{"source":2,"target":3,"label":"b","isEps":false},{"source":3,"target":5,"label":"e","isEps":true},{"source":4,"target":0,"label":"e","isEps":true},{"source":4,"target":2,"label":"e","isEps":true},{"source":5,"target":4,"label":"e","isEps":true},{"source":5,"target":7,"label":"e","isEps":true},{"source":6,"target":4,"label":"e","isEps":true},{"source":6,"target":7,"label":"e","isEps":true},{"source":7,"target":8,"label":"e","isEps":true},{"source":8,"target":9,"label":"a","isEps":false},{"source":9,"target":10,"label":"e","isEps":true},{"source":10,"target":11,"label":"b","isEps":false}]};
+document.getElementById('nfa-info').innerHTML=
+  '&#49345;&#53468; |Q| = ' + nfaData.states.length
+  + ' &nbsp;|&nbsp; &#51204;&#51060; ' + nfaData.links.length
+  + ' &nbsp;|&nbsp; &#49884;&#51089; : q6'
+  + ' &nbsp;|&nbsp; &#51333;&#44208; : {q11}';
+const nW=Math.max(900,window.innerWidth), nH=560;
+const nSvg=d3.select('#nfa-svg').attr('width',nW).attr('height',nH);
+const defs=nSvg.append('defs');
+function mkArr(id,col){
+  defs.append('marker').attr('id',id)
+    .attr('viewBox','0 -5 10 10').attr('refX',8).attr('refY',0)
+    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+    .append('path').attr('d','M0,-5L10,0L0,5').attr('fill',col);
+}
+mkArr('aSym','#89b4fa'); mkArr('aEps','#cba6f7'); mkArr('aStart','#a6e3a1');
+const ng=nSvg.append('g');
+const nn=nfaData.states.map(d=>({...d}));
+const nl=nfaData.links.map(d=>({...d}));
+const sim=d3.forceSimulation(nn)
+  .force('link',d3.forceLink(nl).id(d=>d.id).distance(140))
+  .force('charge',d3.forceManyBody().strength(-700))
+  .force('center',d3.forceCenter(nW/2,nH/2))
+  .force('x',d3.forceX(nW/2).strength(0.04))
+  .force('y',d3.forceY(nH/2).strength(0.04))
+  .force('col',d3.forceCollide(48));
+const eLink=ng.selectAll('.nfa-edge').data(nl).enter().append('path')
+  .attr('class',d=>'nfa-edge '+(d.isEps?'eps-edge':'sym-edge'))
+  .attr('marker-end',d=>d.isEps?'url(#aEps)':'url(#aSym)');
+const eLbl=ng.selectAll('.nfa-lbl').data(nl).enter().append('text')
+  .attr('class',d=>'nfa-lbl '+(d.isEps?'eps-lbl':'sym-lbl'))
+  .attr('text-anchor','middle').text(d=>d.label);
+const startArr=ng.append('path')
+  .attr('fill','none').attr('stroke','#a6e3a1').attr('stroke-width',2)
+  .attr('marker-end','url(#aStart)');
+const nNode=ng.selectAll('.nfa-node').data(nn).enter().append('g')
+  .call(d3.drag()
+    .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+    .on('drag', (e,d)=>{d.fx=e.x;d.fy=e.y;})
+    .on('end',  (e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+nNode.append('circle').attr('r',22)
+  .attr('fill',d=>d.isStart&&d.isAccept?'#cba6f7':d.isStart?'#89dceb':d.isAccept?'#f38ba8':'#45475a')
+  .attr('stroke','#cdd6f4').attr('stroke-width',d=>(d.isStart||d.isAccept)?2.5:1.5);
+nNode.filter(d=>d.isAccept).append('circle')
+  .attr('r',16).attr('fill','none').attr('stroke','#cdd6f4').attr('stroke-width',1.5);
+nNode.append('text')
+  .attr('dy','0.35em').attr('text-anchor','middle')
+  .attr('font-size','11px').attr('font-weight','bold')
+  .attr('fill',d=>(d.isStart||d.isAccept)?'#1e1e2e':'#cdd6f4')
+  .text(d=>'q'+d.id);
+const R=22;
+sim.on('tick',()=>{
+  eLink.attr('d',d=>{
+    if(d.source.id===d.target.id){
+      const x=d.source.x,y=d.source.y;
+      return `M${x-R*.55},${y-R*.83} C${x-80},${y-110} ${x+80},${y-110} ${x+R*.55},${y-R*.83}`;
+    }
+    const dx=d.target.x-d.source.x,dy=d.target.y-d.source.y;
+    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const sx=d.source.x+dx/dist*R,sy=d.source.y+dy/dist*R;
+    const ex=d.target.x-dx/dist*(R+7),ey=d.target.y-dy/dist*(R+7);
+    const mx=(sx+ex)/2-dy/dist*30,my=(sy+ey)/2+dx/dist*30;
+    return `M${sx},${sy} Q${mx},${my} ${ex},${ey}`;
+  });
+  eLbl.attr('x',d=>{
+    if(d.source.id===d.target.id) return d.source.x;
+    return (d.source.x+d.target.x)/2;
+  }).attr('y',d=>{
+    if(d.source.id===d.target.id) return d.source.y-118;
+    const dx=d.target.x-d.source.x,dy=d.target.y-d.source.y;
+    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    return (d.source.y+d.target.y)/2+dx/dist*30-8;
+  });
+  nNode.attr('transform',d=>`translate(${d.x},${d.y})`);
+  const sn=nn.find(n=>n.isStart);
+  if(sn) startArr.attr('d',`M${sn.x-65},${sn.y} L${sn.x-R-4},${sn.y}`);
+});
+</script>
+</body>
+</html>
