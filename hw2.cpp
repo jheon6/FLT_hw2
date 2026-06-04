@@ -169,7 +169,7 @@ NFACount thompsonCount(Node* n) {
     NFACount r = thompsonCount(n->right);
     if (n->value == '+')
         return {l.states + r.states + 2, l.arcs + r.arcs + 4};
-    return {l.states + r.states - 1, l.arcs + r.arcs};
+    return {l.states + r.states, l.arcs + r.arcs + 1};
 }
 
 // ── JSON / HTML 이스케이프 ─────────────────────────────────────────────────────

@@ -24,8 +24,8 @@ hr.sec{border:none;border-top:1px solid #313244;margin:6px 0 0}
 </style>
 </head>
 <body>
-<h2>&#9312; &#51221;&#44508;&#54364;&#54788; &#54028;&#49828; &#53944;&#47532; &nbsp;<code>(a+b)*ab</code></h2>
-<div class="info">&#51204;&#52404; &#45432;&#46300; 8 &nbsp;|&nbsp; &#45800;&#47568; 4 &nbsp;|&nbsp; &#50672;&#49328;&#51088; 4 &nbsp;|&nbsp; NFA &#49345;&#53468; 10 &nbsp;|&nbsp; NFA &#51204;&#51060; 12</div>
+<h2>&#9312; &#51221;&#44508;&#54364;&#54788; &#54028;&#49828; &#53944;&#47532; &nbsp;<code>a*b+c</code></h2>
+<div class="info">&#51204;&#52404; &#45432;&#46300; 6 &nbsp;|&nbsp; &#45800;&#47568; 3 &nbsp;|&nbsp; &#50672;&#49328;&#51088; 3 &nbsp;|&nbsp; NFA &#49345;&#53468; 10 &nbsp;|&nbsp; NFA &#51204;&#51060; 12</div>
 <svg id="tree-svg"></svg>
 <hr class="sec">
 <h2>&#9313; &epsilon;-NFA &#49345;&#53468;&#51204;&#51060;&#46020;</h2>
@@ -33,7 +33,7 @@ hr.sec{border:none;border-top:1px solid #313244;margin:6px 0 0}
 <div class="legend"><span class="dot" style="background:#89dceb"></span>&#49884;&#51089; &nbsp;<span class="dot" style="background:#f38ba8"></span>&#51333;&#44208; &nbsp;<span class="dot" style="background:#45475a;border:1px solid #cdd6f4"></span>&#51068;&#48152; &nbsp;<span style="color:#89b4fa">&#9135;&#9135;</span> &#49900;&#48479;&#47673; &nbsp;<span style="color:#cba6f7">&#9135;&#9135;</span> &epsilon; &#51204;&#51060;</div>
 <svg id="nfa-svg"></svg>
 <script>
-const treeData = {"name":".","children":[{"name":".","children":[{"name":"*","children":[{"name":"+","children":[{"name":"a"},{"name":"b"}]}]},{"name":"a"}]},{"name":"b"}]};
+const treeData = {"name":"+","children":[{"name":".","children":[{"name":"*","children":[{"name":"a"}]},{"name":"b"}]},{"name":"c"}]};
 const margin={top:50,right:180,bottom:30,left:80};
 const W=Math.max(900,window.innerWidth)-margin.left-margin.right;
 const H=Math.max(380,window.innerHeight*0.4)-margin.top-margin.bottom;
@@ -53,12 +53,12 @@ const tn=tSvg.selectAll('.node').data(tr.descendants())
 tn.append('circle').attr('r',18);
 tn.append('text').attr('dy','0.35em').attr('text-anchor','middle')
   .text(d=>d.data.name);
-const nfaData={"states":[{"id":0,"isStart":false,"isAccept":false},{"id":1,"isStart":false,"isAccept":false},{"id":2,"isStart":false,"isAccept":false},{"id":3,"isStart":false,"isAccept":false},{"id":4,"isStart":false,"isAccept":false},{"id":5,"isStart":false,"isAccept":false},{"id":6,"isStart":true,"isAccept":false},{"id":7,"isStart":false,"isAccept":false},{"id":8,"isStart":false,"isAccept":false},{"id":9,"isStart":false,"isAccept":false},{"id":10,"isStart":false,"isAccept":false},{"id":11,"isStart":false,"isAccept":true}],"links":[{"source":0,"target":1,"label":"a","isEps":false},{"source":1,"target":5,"label":"e","isEps":true},{"source":2,"target":3,"label":"b","isEps":false},{"source":3,"target":5,"label":"e","isEps":true},{"source":4,"target":0,"label":"e","isEps":true},{"source":4,"target":2,"label":"e","isEps":true},{"source":5,"target":4,"label":"e","isEps":true},{"source":5,"target":7,"label":"e","isEps":true},{"source":6,"target":4,"label":"e","isEps":true},{"source":6,"target":7,"label":"e","isEps":true},{"source":7,"target":8,"label":"e","isEps":true},{"source":8,"target":9,"label":"a","isEps":false},{"source":9,"target":10,"label":"e","isEps":true},{"source":10,"target":11,"label":"b","isEps":false}]};
+const nfaData={"states":[{"id":0,"isStart":false,"isAccept":false},{"id":1,"isStart":false,"isAccept":false},{"id":2,"isStart":false,"isAccept":false},{"id":3,"isStart":false,"isAccept":false},{"id":4,"isStart":false,"isAccept":false},{"id":5,"isStart":false,"isAccept":false},{"id":6,"isStart":false,"isAccept":false},{"id":7,"isStart":false,"isAccept":false},{"id":8,"isStart":true,"isAccept":false},{"id":9,"isStart":false,"isAccept":true}],"links":[{"source":0,"target":1,"label":"a","isEps":false},{"source":1,"target":0,"label":"e","isEps":true},{"source":1,"target":3,"label":"e","isEps":true},{"source":2,"target":0,"label":"e","isEps":true},{"source":2,"target":3,"label":"e","isEps":true},{"source":3,"target":4,"label":"e","isEps":true},{"source":4,"target":5,"label":"b","isEps":false},{"source":5,"target":9,"label":"e","isEps":true},{"source":6,"target":7,"label":"c","isEps":false},{"source":7,"target":9,"label":"e","isEps":true},{"source":8,"target":2,"label":"e","isEps":true},{"source":8,"target":6,"label":"e","isEps":true}]};
 document.getElementById('nfa-info').innerHTML=
   '&#49345;&#53468; |Q| = ' + nfaData.states.length
   + ' &nbsp;|&nbsp; &#51204;&#51060; ' + nfaData.links.length
-  + ' &nbsp;|&nbsp; &#49884;&#51089; : q6'
-  + ' &nbsp;|&nbsp; &#51333;&#44208; : {q11}';
+  + ' &nbsp;|&nbsp; &#49884;&#51089; : q8'
+  + ' &nbsp;|&nbsp; &#51333;&#44208; : {q9}';
 const nW=Math.max(900,window.innerWidth), nH=560;
 const nSvg=d3.select('#nfa-svg').attr('width',nW).attr('height',nH);
 const defs=nSvg.append('defs');
